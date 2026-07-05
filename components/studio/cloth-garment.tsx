@@ -246,6 +246,7 @@ export function ClothGarment({ body, garment, size, heatmap, simKey, onSettled }
   return (
     <mesh ref={meshRef} geometry={sim.geometry} castShadow>
       <meshStandardMaterial
+        key={heatmap ? 'heatmap' : 'plain'}
         color={heatmap ? '#ffffff' : garment.color}
         vertexColors={heatmap}
         roughness={garment.fabric.stiffness > 0.8 ? 0.85 : 0.55}
