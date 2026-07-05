@@ -43,7 +43,8 @@ type Mask = NonNullable<PoseExtraction['mask']>
 
 function clamp(key: keyof Measurements, v: number): number {
   const [min, max] = CLAMP[key]
-  return Math.round(Math.min(max, Math.max(min, v)) * 10) / 10
+  // whole-cm values: matches the slider steps and keeps the UI clean
+  return Math.round(Math.min(max, Math.max(min, v)))
 }
 
 /** Ramanujan approximation of an ellipse perimeter, semi-axes a and b. */

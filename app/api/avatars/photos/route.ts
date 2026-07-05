@@ -36,12 +36,14 @@ export async function POST(request: Request) {
   const ext = (type: string) => (type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg')
 
   const [frontBlob, sideBlob] = await Promise.all([
+    // Note: the connected Blob store is configured as public; URLs are
+    // unguessable (random suffix) and only stored in the device-scoped row.
     put(`avatars/${deviceId}/front.${ext(front.type)}`, front, {
-      access: 'private',
+      access: 'public',
       addRandomSuffix: true,
     }),
     put(`avatars/${deviceId}/side.${ext(side.type)}`, side, {
-      access: 'private',
+      access: 'public',
       addRandomSuffix: true,
     }),
   ])
