@@ -76,7 +76,7 @@ export default function LandingPage() {
               Market
             </a>
           </nav>
-          <Button render={<Link href="/studio" />} size="sm">
+          <Button render={<Link href="/studio" />} nativeButton={false} size="sm">
             Launch demo
           </Button>
         </div>
@@ -100,11 +100,11 @@ export default function LandingPage() {
               garments on it with true cloth physics. Fit returns drop. Conversion climbs.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button render={<Link href="/studio" />} size="lg" className="gap-2">
+              <Button render={<Link href="/studio" />} nativeButton={false} size="lg" className="gap-2">
                 Try the live demo
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Button>
-              <Button render={<a href="#how" />} variant="secondary" size="lg">
+              <Button render={<a href="#how" />} nativeButton={false} variant="secondary" size="lg">
                 How it works
               </Button>
             </div>
@@ -184,7 +184,7 @@ export default function LandingPage() {
             Create an avatar, pick a garment, watch real cloth physics settle on your body —
             all in the browser.
           </p>
-          <Button render={<Link href="/studio" />} size="lg" className="gap-2">
+          <Button render={<Link href="/studio" />} nativeButton={false} size="lg" className="gap-2">
             Launch the try-on studio
             <ArrowRight className="size-4" aria-hidden="true" />
           </Button>
