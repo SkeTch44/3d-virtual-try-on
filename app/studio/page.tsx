@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { ArrowLeft } from 'lucide-react'
@@ -18,6 +19,25 @@ const StudioScene = dynamic(
 export default function StudioPage() {
   const step = useStudioStore((s) => s.step)
   const setStep = useStudioStore((s) => s.setStep)
+  const hydrationChecked = useStudioStore((s) => s.hydrationChecked)
+  const setSavedAvatar = useStudioStore((s) => s.setSavedAvatar)
+
+  // Session restore: look up the device's latest saved avatar once per visit.
+  useEffect(() => {
+    if (hydrationChecked) return
+    let cancelled = false
+    fetch('/api/avatars/latest')
+      .then((res) => (res.ok ? res.json() : { avatar: null }))
+      .then(({ avatar }) => {
+        if (!cancelled) setSavedAvatar(avatar ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setSavedAvatar(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [hydrationChecked, setSavedAvatar])
 
   const has3D = step === 'avatar' || step === 'tryon'
 
