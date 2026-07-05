@@ -1,0 +1,5 @@
+# License-gated SMPL-X model files must never be committed
+models/
+.venv/
+__pycache__/
+*.pyc
