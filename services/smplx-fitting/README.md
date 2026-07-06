@@ -11,8 +11,11 @@ This is the Phase 1 "SMPL-X fitting worker" from PLAN.md, packaged as a FastAPI 
 instead of a Celery worker so it can be deployed anywhere (Modal, RunPod, Fly GPU, or any
 box with a GPU — CPU works too, just slower).
 
-> **This service is NOT wired into the web app yet.** The app currently uses its in-browser
-> heuristic estimator. See "Wiring into the web app" below for the planned integration.
+> **This service IS wired into the web app.** After the avatar is saved, the processing
+> pipeline calls `POST /api/avatars/[id]/smplx`, a server-side proxy that forwards the
+> stored landmarks to this service when `SMPLX_SERVICE_URL` is set. When the env var is
+> unset or the service errors, the stage is skipped and the in-browser heuristic
+> estimate is kept — the UX degrades gracefully. See "Wiring into the web app" below.
 
 ## License requirement (important)
 
@@ -120,16 +123,20 @@ Only keypoints with `visibility >= 0.5` contribute to the loss, weighted by visi
 - Set `SMPLX_MODEL_DIR` if the models live outside `./models/smplx`.
 - `PORT` is respected by the Dockerfile entrypoint (default 8000).
 
-## Wiring into the web app (later)
+## Wiring into the web app
 
-The planned integration (not yet implemented):
+The integration is implemented as follows:
 
-1. Deploy this service, set `SMPLX_SERVICE_URL` in the Vercel project env vars.
-2. In `components/studio/processing-step.tsx`, after landmark extraction, POST the
-   existing `AvatarLandmarks` + height to `${SMPLX_SERVICE_URL}/fit` via a Next.js
-   route handler (keeps the service URL server-side).
-3. Use the returned measurements instead of the heuristic estimate, store `betas` in
-   the `avatars.landmarks` jsonb (or a new column), and optionally fetch `/fit/glb`
-   and upload it to Blob for the Phase 3 physics pipeline.
-4. Keep the in-browser estimator as the fallback when `SMPLX_SERVICE_URL` is unset or
-   the service errors — the current UX continues to work unchanged.
+1. **Deploy this service**, then set `SMPLX_SERVICE_URL` in the Vercel project env vars
+   (e.g. `https://your-service.modal.run`). That's the only switch — no code changes.
+2. `app/api/avatars/[id]/smplx/route.ts` is the server-side proxy. It verifies device
+   ownership of the avatar row, forwards the stored landmarks + height to
+   `${SMPLX_SERVICE_URL}/fit`, validates and clamps the response, and persists
+   `betas`/`confidence` into the `avatars.smplx` jsonb column alongside the refined
+   measurements.
+3. `components/studio/processing-step.tsx` runs "SMPL-X mesh fitting" as the final
+   pipeline stage. On success the mesh-true measurements replace the heuristic
+   estimate; on `{ available: false }` (env var unset, service down, bad response)
+   the stage shows a skip note and the silhouette estimate is kept.
+4. Future: fetch `/fit/glb` from the proxy and upload the fitted mesh to Blob for the
+   Phase 3 physics pipeline.
