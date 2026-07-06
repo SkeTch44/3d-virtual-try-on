@@ -8,13 +8,43 @@ import { extractPose, PoseDetectionError, type PoseExtraction } from '@/lib/pose
 import { estimateMeasurements } from '@/lib/pose/measurements'
 import { LandmarkOverlay } from './landmark-overlay'
 import type { AvatarLandmarks } from '@/lib/pose/types'
+import type { Measurements } from '@/lib/size-ai'
 
 const STAGES = [
   { label: 'Uploading photos', detail: 'Private blob storage · device-scoped' },
   { label: 'Extracting body landmarks', detail: 'MediaPipe pose estimation · 33 keypoints' },
-  { label: 'Estimating measurements', detail: 'Silhouette calibration · ellipse fitting' },
+  { label: 'Estimating measurements', detail: 'SMPL-X parametric fit · heuristic fallback' },
   { label: 'Saving your avatar', detail: 'Persisted for your next visit' },
 ]
+
+type SmplxFit = {
+  measurements: Measurements
+  confidence: number
+}
+
+/**
+ * Attempt the server-side SMPL-X parametric fit. Returns null when the
+ * service is not configured, unreachable, or errors — the caller falls
+ * back to the on-device heuristic pipeline.
+ */
+async function trySmplxFit(
+  landmarks: AvatarLandmarks,
+  heightCm: number,
+): Promise<SmplxFit | null> {
+  try {
+    const res = await fetch('/api/smplx/fit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ heightCm, front: landmarks.front, side: landmarks.side }),
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as SmplxFit
+    if (!data?.measurements || typeof data.confidence !== 'number') return null
+    return data
+  } catch {
+    return null
+  }
+}
 
 type Failure = { stage: number; message: string }
 
@@ -29,6 +59,7 @@ export function ProcessingStep() {
   const [failure, setFailure] = useState<Failure | null>(null)
   const [landmarks, setLandmarks] = useState<AvatarLandmarks | null>(null)
   const [sideSkipped, setSideSkipped] = useState(false)
+  const [fitEngine, setFitEngine] = useState<'smplx' | 'heuristic' | null>(null)
   const runningRef = useRef(false)
   const [attempt, setAttempt] = useState(0)
 
@@ -69,9 +100,17 @@ export function ProcessingStep() {
       }
       setLandmarks(extracted)
 
-      // Stage 3: measurement estimation from silhouette + landmarks
+      // Stage 3: SMPL-X parametric fit (GPU service), heuristic fallback
       setCurrent(2)
-      const estimate = estimateMeasurements(frontPose, sidePose, heightHint)
+      let estimate: { measurements: SmplxFit['measurements']; confidence: number }
+      const smplx = await trySmplxFit(extracted, heightHint)
+      if (smplx) {
+        estimate = smplx
+        setFitEngine('smplx')
+      } else {
+        estimate = estimateMeasurements(frontPose, sidePose, heightHint)
+        setFitEngine('heuristic')
+      }
 
       // Stage 4: persist landmarks + measurements
       setCurrent(3)
@@ -130,6 +169,7 @@ export function ProcessingStep() {
     setFailure(null)
     setLandmarks(null)
     setSideSkipped(false)
+    setFitEngine(null)
     setCurrent(0)
     setAttempt((a) => a + 1)
   }
@@ -186,6 +226,19 @@ export function ProcessingStep() {
                 {i === 1 && sideSkipped && !failure && (
                   <span className="text-xs text-amber-600 dark:text-amber-500">
                     Side view unclear — using population depth ratios instead
+                  </span>
+                )}
+                {i === 2 && fitEngine && !failure && (
+                  <span
+                    className={`text-xs ${
+                      fitEngine === 'smplx'
+                        ? 'text-emerald-600 dark:text-emerald-500'
+                        : 'text-amber-600 dark:text-amber-500'
+                    }`}
+                  >
+                    {fitEngine === 'smplx'
+                      ? 'SMPL-X parametric body fit (GPU service)'
+                      : 'GPU service offline — silhouette calibration used'}
                   </span>
                 )}
               </div>

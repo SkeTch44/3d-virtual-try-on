@@ -33,7 +33,7 @@ A physics-based AI 3D virtual try-on platform:
 | File storage | Vercel Blob (`@vercel/blob`) for uploaded photos |
 | Identity | Anonymous device id cookie (`lib/device-id.ts`) — **no auth yet** |
 | Cloth physics | Custom XPBD-style cloth solver in TypeScript, runs client-side in R3F (`components/studio/cloth-garment.tsx`) |
-| SMPL-X service | Python FastAPI microservice (`services/smplx-fitting/`) — **built but NOT wired in** |
+| SMPL-X service | Python FastAPI microservice (`services/smplx-fitting/`) — **wired via `/api/smplx/fit` proxy; awaiting deployment** |
 
 ## 3. Repository Layout
 
@@ -44,6 +44,7 @@ app/
   api/avatars/photos/route.ts # POST photos -> Blob upload + avatar row
   api/avatars/[id]/route.ts   # PATCH avatar (landmarks/measurements/status)
   api/avatars/latest/route.ts # GET latest avatar for device (session restore)
+  api/smplx/fit/route.ts      # POST proxy -> SMPL-X GPU service (503 = fallback)
 components/
   landing/hero-visual.tsx     # Landing 3D hero
   studio/
@@ -98,8 +99,9 @@ docs/
 - Parametric 3D avatar rendered from measurements in R3F, with landmark debug overlay
 - Manual measurement sliders as fallback/override (source tracked: photo vs manual)
 - **SMPL-X fitting service** (`services/smplx-fitting/`): full SMPLify-X-style
-  2-view fitting, mesh-slice measurements, GLB export. Standalone, tested,
-  documented — awaiting deployment + wiring (needs license-gated SMPL-X model files).
+  2-view fitting, mesh-slice measurements, GLB export. Wired into the processing
+  step via the `/api/smplx/fit` proxy (heuristic fallback when `SMPLX_SERVICE_URL`
+  is unset) — awaiting deployment (needs license-gated SMPL-X model files).
 
 ### Phase 2 — Garment Digitization (partially done, template-first)
 - Garment catalog with 4 garments (tee, slip dress, denim jacket, +) and size charts (S–XL)
@@ -149,14 +151,15 @@ docs/
 |---|---|---|
 | `DATABASE_URL` / Postgres vars | Drizzle/pg connection | required |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob photo uploads | required |
-| `SMPLX_SERVICE_URL` | SMPL-X fitting service base URL | planned (not wired) |
+| `SMPLX_SERVICE_URL` | SMPL-X fitting service base URL (used by `/api/smplx/fit` proxy) | optional — heuristic fallback when unset |
 
 ## 8. What's Next
 
 See `docs/PLAN.md` → "What's Remaining" for the prioritized list. Top of the stack:
 
-1. Wire the SMPL-X service into the processing step (server route proxy + fallback)
-2. Real GLB garment templates (Blender-authored) replacing procedural geometry
+1. Deploy the SMPL-X service and set `SMPLX_SERVICE_URL` (proxy already wired
+   at `app/api/smplx/fit/route.ts` with heuristic fallback)
+2. Real GLB garment templates replacing procedural geometry
 3. Auth (Better Auth on Neon per platform default) replacing device-id-only identity
 4. Brand dashboard v0 + garment upload flow
 5. Server-side simulation cache for identical body+garment pairs

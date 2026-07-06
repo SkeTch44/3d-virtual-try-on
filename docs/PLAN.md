@@ -47,9 +47,10 @@ Goal: photo in → 3D avatar with measurements rendered in browser in < 60s.
 - [x] Manual measurement sliders (fallback + override, source tracked)
 - [x] SMPL-X fitting microservice built (`services/smplx-fitting/`):
       2-view SMPLify-X optimization, mesh-slice measurements, GLB export, Dockerfile
+- [x] Wire SMPL-X into processing step via a Next.js route handler proxy
+      (`/api/smplx/fit` + `SMPLX_SERVICE_URL`), heuristic estimator as fallback
 - [ ] Deploy SMPL-X service (needs license-gated model files — see its README)
-- [ ] Wire SMPL-X into processing step via a Next.js route handler
-      (`SMPLX_SERVICE_URL`), heuristic estimator as fallback
+      and set `SMPLX_SERVICE_URL` in the project env
 - [ ] Store `betas` + fitted GLB in Blob for the physics pipeline
 - [ ] Verify SMPL-X commercial licensing (Meshcapade) or evaluate SKEL/STAR
 
@@ -144,9 +145,10 @@ Goal: production-grade reliability and reach.
 
 The next-up list, in order:
 
-1. **Wire SMPL-X service** — deploy `services/smplx-fitting`, add `SMPLX_SERVICE_URL`
-   route-handler proxy in the processing step, keep heuristic fallback. (Phase 1)
-2. **Real garment templates** — Blender-authored GLBs for the 5 core garment types,
+1. **Deploy SMPL-X service** — the `/api/smplx/fit` proxy is wired with heuristic
+   fallback; deploy `services/smplx-fitting` (GPU host + licensed model files) and
+   set `SMPLX_SERVICE_URL`. (Phase 1)
+2. **Real garment templates** — authored GLBs for the 5 core garment types,
    replacing procedural geometry. (Phase 2)
 3. **Auth** — email + password (Better Auth on Neon), migrate device-id avatars to
    user accounts on sign-up. (Phase 0)
