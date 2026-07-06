@@ -14,7 +14,6 @@ const STAGES = [
   { label: 'Extracting body landmarks', detail: 'MediaPipe pose estimation · 33 keypoints' },
   { label: 'Estimating measurements', detail: 'Silhouette calibration · ellipse fitting' },
   { label: 'Saving your avatar', detail: 'Persisted for your next visit' },
-  { label: 'SMPL-X mesh fitting', detail: 'GPU body model · mesh-true measurements' },
 ]
 
 type Failure = { stage: number; message: string }
@@ -30,7 +29,6 @@ export function ProcessingStep() {
   const [failure, setFailure] = useState<Failure | null>(null)
   const [landmarks, setLandmarks] = useState<AvatarLandmarks | null>(null)
   const [sideSkipped, setSideSkipped] = useState(false)
-  const [smplxState, setSmplxState] = useState<'pending' | 'done' | 'skipped'>('pending')
   const runningRef = useRef(false)
   const [attempt, setAttempt] = useState(0)
 
@@ -92,47 +90,14 @@ export function ProcessingStep() {
         throw new Error(body?.error ?? `Saving failed (${patchRes.status})`)
       }
 
-      // Stage 5 (optional): SMPL-X mesh fitting via the deployed service.
-      // Skips gracefully when SMPLX_SERVICE_URL is not configured — the
-      // heuristic estimate above remains the result.
       setCurrent(4)
-      let finalMeasurements = estimate.measurements
-      let finalConfidence = estimate.confidence
-      try {
-        const smplxRes = await fetch(`/api/avatars/${avatarId}/smplx`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ heightCm: heightHint }),
-        })
-        if (smplxRes.ok) {
-          const fit = (await smplxRes.json()) as {
-            available: boolean
-            measurements?: typeof estimate.measurements
-            confidence?: number
-          }
-          if (fit.available && fit.measurements) {
-            finalMeasurements = fit.measurements
-            finalConfidence = Math.round((fit.confidence ?? 0.9) * 100)
-            setSmplxState('done')
-          } else {
-            setSmplxState('skipped')
-          }
-        } else {
-          setSmplxState('skipped')
-        }
-      } catch {
-        // never fail the pipeline on the optional refinement step
-        setSmplxState('skipped')
-      }
-
-      setCurrent(5)
       // brief pause so the user sees the completed checklist
       setTimeout(() => {
         completeProcessing({
           avatarId,
-          measurements: finalMeasurements,
+          measurements: estimate.measurements,
           landmarks: extracted,
-          confidence: finalConfidence,
+          confidence: estimate.confidence,
         })
       }, 700)
     } catch (err) {
@@ -165,7 +130,6 @@ export function ProcessingStep() {
     setFailure(null)
     setLandmarks(null)
     setSideSkipped(false)
-    setSmplxState('pending')
     setCurrent(0)
     setAttempt((a) => a + 1)
   }
@@ -222,16 +186,6 @@ export function ProcessingStep() {
                 {i === 1 && sideSkipped && !failure && (
                   <span className="text-xs text-amber-600 dark:text-amber-500">
                     Side view unclear — using population depth ratios instead
-                  </span>
-                )}
-                {i === 4 && smplxState === 'skipped' && !failure && (
-                  <span className="text-xs text-amber-600 dark:text-amber-500">
-                    Fitting service not deployed — using silhouette estimate instead
-                  </span>
-                )}
-                {i === 4 && smplxState === 'done' && !failure && (
-                  <span className="text-xs text-emerald-600 dark:text-emerald-500">
-                    Measurements refined from the fitted 3D mesh
                   </span>
                 )}
               </div>
