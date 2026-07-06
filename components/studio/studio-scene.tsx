@@ -6,7 +6,7 @@ import { OrbitControls, ContactShadows, Environment } from '@react-three/drei'
 import { buildBodyProfile } from '@/lib/body'
 import { useStudioStore } from '@/lib/studio-store'
 import { AvatarModel } from './avatar-model'
-import { ClothGarment } from './cloth-garment'
+import { ClothGarmentMesh } from './cloth-garment-mesh'
 
 type Props = {
   showCloth?: boolean

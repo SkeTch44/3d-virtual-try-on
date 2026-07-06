@@ -27,6 +27,8 @@ export type SizeSpec = {
 
 export type Garment = {
   id: string
+  /** GLB template in public/garments/ (authored by scripts/generate-garment-templates.mjs) */
+  templateId: 'tee' | 'jacket' | 'coat' | 'dress' | 'skirt' | 'jeans'
   name: string
   brand: string
   price: number
@@ -43,6 +45,7 @@ export type Garment = {
 export const GARMENTS: Garment[] = [
   {
     id: 'tee',
+    templateId: 'tee',
     name: 'Classic Crew Tee',
     brand: 'Atelier North',
     price: 45,
@@ -60,6 +63,7 @@ export const GARMENTS: Garment[] = [
   },
   {
     id: 'dress',
+    templateId: 'dress',
     name: 'Bias-Cut Slip Dress',
     brand: 'Maison Vela',
     price: 210,
@@ -77,6 +81,7 @@ export const GARMENTS: Garment[] = [
   },
   {
     id: 'jacket',
+    templateId: 'jacket',
     name: 'Denim Trucker Jacket',
     brand: 'Foundry Denim',
     price: 128,
@@ -94,6 +99,7 @@ export const GARMENTS: Garment[] = [
   },
   {
     id: 'coat',
+    templateId: 'coat',
     name: 'Tailored Wool Coat',
     brand: 'Atelier North',
     price: 340,
@@ -108,5 +114,41 @@ export const GARMENTS: Garment[] = [
       { label: 'XL', chest: 128, waist: 124, hips: 130 },
     ],
     description: '320gsm wool twill with structured shoulders and a clean, weighted fall.',
+  },
+  {
+    id: 'jeans',
+    templateId: 'jeans',
+    name: 'Straight-Leg Jeans',
+    brand: 'Foundry Denim',
+    price: 96,
+    fabric: FABRICS.denim,
+    color: '#2f4358',
+    topY: 0.62,
+    bottomY: 0.07,
+    sizes: [
+      { label: 'S', chest: 96, waist: 78, hips: 96 },
+      { label: 'M', chest: 104, waist: 84, hips: 102 },
+      { label: 'L', chest: 112, waist: 92, hips: 110 },
+      { label: 'XL', chest: 120, waist: 100, hips: 118 },
+    ],
+    description: 'Rigid 12oz denim, split-leg construction seamed at the yoke — real trouser topology.',
+  },
+  {
+    id: 'skirt',
+    templateId: 'skirt',
+    name: 'A-Line Midi Skirt',
+    brand: 'Maison Vela',
+    price: 145,
+    fabric: FABRICS.wool,
+    color: '#7a6a52',
+    topY: 0.62,
+    bottomY: 0.32,
+    sizes: [
+      { label: 'S', chest: 92, waist: 74, hips: 94 },
+      { label: 'M', chest: 100, waist: 80, hips: 100 },
+      { label: 'L', chest: 108, waist: 88, hips: 108 },
+      { label: 'XL', chest: 116, waist: 96, hips: 116 },
+    ],
+    description: 'Wool twill A-line with a flared hem — waistband pinned, free-falling drape below.',
   },
 ]

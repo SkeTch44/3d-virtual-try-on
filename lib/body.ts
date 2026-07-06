@@ -41,6 +41,8 @@ export type BodyProfile = {
   halfWidthAt: (y: number) => number
   /** arm capsule endpoints [shoulder, wrist] for each side */
   arms: { start: [number, number, number]; end: [number, number, number]; r: number }[]
+  /** leg capsule endpoints [hip, ankle] for each side */
+  legs: { start: [number, number, number]; end: [number, number, number]; r: number }[]
   legR: number
   legOffsetX: number
 }
@@ -95,6 +97,14 @@ export function buildBodyProfile(m: Measurements): BodyProfile {
     }
   })
 
+  const legR = 0.055 * heightM
+  const legOffsetX = hipA * 0.48
+  const legs = [-1, 1].map((side) => ({
+    start: [side * legOffsetX, hipY * 0.92, 0] as [number, number, number],
+    end: [side * legOffsetX, 0.06, 0] as [number, number, number],
+    r: legR,
+  }))
+
   return {
     heightM,
     hipY,
@@ -111,8 +121,9 @@ export function buildBodyProfile(m: Measurements): BodyProfile {
     neckA,
     halfWidthAt,
     arms,
-    legR: 0.055 * heightM,
-    legOffsetX: hipA * 0.48,
+    legs,
+    legR,
+    legOffsetX,
   }
 }
 
@@ -142,6 +153,23 @@ export function collideBody(
       p[i] = x * scale
       p[i + 2] = z * scale
       penetration = Math.max(penetration, (scale - 1) * Math.hypot(x, z))
+    }
+  }
+
+  // leg capsules (only below the hip line, where the torso ellipse has tapered off)
+  if (y < body.hipY) {
+    for (const leg of body.legs) {
+      const lx = leg.start[0]
+      const dx = p[i] - lx
+      const dz = p[i + 2]
+      const dist = Math.sqrt(dx * dx + dz * dz)
+      const minDist = leg.r + offset * 0.7
+      if (dist < minDist && dist > 1e-6 && y < leg.start[1] + leg.r && y > leg.end[1] - leg.r) {
+        const push = minDist / dist
+        p[i] = lx + dx * push
+        p[i + 2] = dz * push
+        penetration = Math.max(penetration, minDist - dist)
+      }
     }
   }
 
