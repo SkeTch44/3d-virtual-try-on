@@ -1,0 +1,8 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+torch>=2.2
+numpy>=1.26
+smplx>=0.1.28
+trimesh>=4.4
+shapely>=2.0
